@@ -1,38 +1,40 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.27;
+pragma solidity ^0.8.24;
 
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/interfaces/IERC20.sol";
-import "hardhat/console.sol";
 
 /// @custom:security-contact nextchain@nxchain.link
+contract Virtush is ERC1155, Ownable {
+    string private _name = "Virtush NFT";
+    uint256 immutable maxMintableNft = 21_000_000;
+    uint256 public totalSupply;
+    uint256 immutable price = 50_000_000_000_000_000_000;
+    IERC20 public usdt;
 
-contract VirtushPass is ERC721, Ownable {
-    uint256 public _nextTokenId;
-    IERC20 usdt;
-    uint256 price = 50_000_000_000_000_000_000; //50 USDT
-
-    constructor(address initialOwner, address _usdt)
-        ERC721("Virtush Pass", "VRT")
-        Ownable(initialOwner)
+    constructor(address initialOwner, address _token) 
+    ERC1155("") 
+    Ownable(initialOwner) 
     {
-        usdt = IERC20(_usdt);
+        usdt = IERC20(_token);
     }
 
-    function _baseURI() internal pure override returns (string memory) {
-        return "htpps://virtush.com";
+    function setURI(string memory newuri) public onlyOwner {
+        _setURI(newuri);
     }
 
-    function buy(address to, uint256 amount) external returns(uint256) {
-        require(amount == price, "PRICE_50_USDT");
+    function buy(address account, uint256 value)
+        public
+        monitorMintable(1)
+        returns(uint256)
+    {
+        require(value == price, "PRICE_50_USDT");
         require(
-            usdt.allowance(_msgSender(), address(this)) >= amount, 
+            usdt.allowance(_msgSender(), address(this)) >= value, 
             "INVALID_ALLOWANCE"
         );
-        require(to != address(0), "INVALID_ADDRESS_TO");
-
-        console.log(usdt.allowance(_msgSender(), address(this)));
+        require(account != address(0), "INVALID_ADDRESS_TO");
 
         usdt.transferFrom(
             _msgSender(),
@@ -40,17 +42,28 @@ contract VirtushPass is ERC721, Ownable {
             price
         );
 
-        safeMint(to);
-
-        return _nextTokenId;
+        _mint(account, 1, 1, "0x0");
+        
+        return totalSupply;
     }
 
-    function safeMint(address to) internal {
-        require(_nextTokenId < 21_000_000, "INVALID_MINT"); 
-        uint256 tokenId = _nextTokenId;
-        _nextTokenId++;
-        _safeMint(to, tokenId);
+    function mint(address account, uint256 amount)
+        public
+        onlyOwner
+        monitorMintable(amount)
+    {  
+        _mint(account, 1, amount, "0x0");
+       
     }
 
+    modifier monitorMintable(uint256 amount) {
+        totalSupply = totalSupply + amount;
+        require(totalSupply <= maxMintableNft, "MAX_MINTABLE_TARGET");
+        _;
+    }
+
+    function name() public view virtual returns (string memory) {
+        return _name;
+    }
 
 }

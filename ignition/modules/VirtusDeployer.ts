@@ -9,7 +9,7 @@ const VirtusModule = buildModule("LockModule", (m) => {
 
   const usdt = m.contract("Theater");
 
-  const virtush = m.contract("VirtushPass", [owner, usdt]);
+  const virtush = m.contract("Virtush", [owner, usdt]);
 
   return { virtush, usdt };
 });
